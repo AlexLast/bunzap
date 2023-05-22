@@ -3,7 +3,7 @@ module github.com/alexlast/bunzap
 go 1.20
 
 require (
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.3
 	github.com/uptrace/bun v1.1.13
 	go.uber.org/zap v1.24.0
 )
