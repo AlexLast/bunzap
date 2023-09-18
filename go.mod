@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/stretchr/testify v1.8.4
-	github.com/uptrace/bun v1.1.15
+	github.com/uptrace/bun v1.1.16
 	go.uber.org/zap v1.25.0
 )
 
