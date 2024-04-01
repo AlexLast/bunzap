@@ -2,6 +2,8 @@ package bunzap
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -22,24 +24,27 @@ const (
 type QueryHook struct {
 	bun.QueryHook
 
-	logger       *zap.Logger
-	slowDuration time.Duration
+	logger          *zap.Logger
+	slowDuration    time.Duration
+	ignoreErrNoRows bool
 }
 
 // QueryHookOptions defines the
 // available options for a new
 // query hook.
 type QueryHookOptions struct {
-	Logger       *zap.Logger
-	SlowDuration time.Duration
+	Logger          *zap.Logger
+	SlowDuration    time.Duration
+	IgnoreErrNoRows bool
 }
 
 // NewQueryHook returns a new query hook for use with
 // uptrace/bun.
 func NewQueryHook(options QueryHookOptions) QueryHook {
 	return QueryHook{
-		logger:       options.Logger,
-		slowDuration: options.SlowDuration,
+		logger:          options.Logger,
+		slowDuration:    options.SlowDuration,
+		ignoreErrNoRows: options.IgnoreErrNoRows,
 	}
 }
 
@@ -55,7 +60,8 @@ func (qh QueryHook) AfterQuery(ctx context.Context, event *bun.QueryEvent) {
 	}
 
 	// Errors will always be logged
-	if event.Err != nil {
+	// except for ErrNoRows if IgnoreErrNoRows is set
+	if event.Err != nil && !(qh.ignoreErrNoRows && errors.Is(event.Err, sql.ErrNoRows)) {
 		fields = append(fields, zap.Error(event.Err))
 		qh.logger.Error(event.Query, fields...)
 		return

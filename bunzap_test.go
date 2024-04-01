@@ -2,7 +2,7 @@ package bunzap_test
 
 import (
 	"context"
-	"errors"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -27,7 +27,9 @@ func TestQueryHookError(t *testing.T) {
 	event := &bun.QueryEvent{
 		StartTime: time.Now(),
 		Query:     "SELECT * FROM users WHERE id = $1",
-		Err:       errors.New("database error"),
+		// can use any error, might as well use sql.ErrNoRows
+		// to cover default IgnoreErrNoRows = false
+		Err: sql.ErrNoRows,
 	}
 
 	qh.AfterQuery(context.Background(), event)
@@ -54,6 +56,27 @@ func TestQueryHookError(t *testing.T) {
 			Interface: event.Err,
 		},
 	}, logs[0].Context)
+}
+
+func TestQueryHookErrorIgnoreErrNoRows(t *testing.T) {
+	core, obs := observer.New(zap.InfoLevel)
+	logger := zap.New(core)
+
+	defer logger.Sync()
+
+	qh := bunzap.NewQueryHook(bunzap.QueryHookOptions{
+		Logger:          logger,
+		IgnoreErrNoRows: true,
+	})
+
+	event := &bun.QueryEvent{
+		StartTime: time.Now(),
+		Query:     "SELECT * FROM users WHERE id = $1",
+		Err:       sql.ErrNoRows,
+	}
+
+	qh.AfterQuery(context.Background(), event)
+	assert.Equal(t, 0, obs.Len())
 }
 
 func TestQueryHookDebug(t *testing.T) {
